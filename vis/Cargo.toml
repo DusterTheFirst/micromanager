@@ -1,0 +1,12 @@
+[package]
+name = "micromanager-vis"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+color-eyre = "0.6.0"
+pyo3 = { version = "0.15.1", features = ["eyre", "abi3"] }
+tracing = "0.1.29"
+tracing-subscriber = { version = "0.3.6", features = ["env-filter"] }
+tracing-error = "0.2.0"
+rand = "0.8.4"
