@@ -4,6 +4,7 @@ use python::run_python;
 use tracing::{info, info_span};
 
 mod python;
+mod window;
 
 fn main() -> Result<()> {
     color_eyre::install()?;
