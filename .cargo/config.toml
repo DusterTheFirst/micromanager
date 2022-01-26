@@ -3,3 +3,4 @@ rustflags = ["-C", "target-cpu=native"]
 
 [env]
 PYO3_PYTHON = "C:\\Program Files\\Python39\\python.exe"
+GTK_THEME="adwaita:dark"
