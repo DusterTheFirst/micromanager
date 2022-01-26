@@ -51,7 +51,18 @@ pub fn draw_plot(
         pb.into_matrix()
     });
 
-    chart.configure_axes().draw().unwrap();
+    chart
+        .configure_axes()
+        .label_style(FontDesc::new(
+            FontFamily::SansSerif,
+            18.0,
+            FontStyle::Normal,
+        ))
+        .x_labels(8)
+        .y_labels(8)
+        .z_labels(8)
+        .draw()
+        .unwrap();
 
     chart
         .draw_series(PointSeries::of_element(

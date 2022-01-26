@@ -3,7 +3,6 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use cast::u32;
 use gtk::{prelude::*, DrawingArea, Orientation};
 use plotters::prelude::*;
 use plotters_cairo::CairoBackend;
@@ -28,6 +27,8 @@ pub fn main(points: Arc<Vec<Point>>) {
 }
 
 pub fn build_ui(application: &gtk::Application, points: Arc<Vec<Point>>) {
+    let _build_ui_span = info_span!("build_ui");
+
     let window = gtk::ApplicationWindow::builder()
         .application(application)
         .title("Vis")
@@ -49,8 +50,8 @@ pub fn build_ui(application: &gtk::Application, points: Arc<Vec<Point>>) {
         move |_, context, width, height| {
             let projection = projection.lock().unwrap();
 
-            let width = u32(width).expect("provided a negative width");
-            let height = u32(height).expect("provided a negative height");
+            let width = cast::u32(width).expect("provided a negative width");
+            let height = cast::u32(height).expect("provided a negative height");
 
             let backend = CairoBackend::new(context, (width, height));
             let drawing_area = backend.into_drawing_area();
