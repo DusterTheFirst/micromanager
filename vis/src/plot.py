@@ -10,15 +10,15 @@ import matplotlib.pyplot as pyplot
 figure = pyplot.figure()
 plot = figure.add_subplot(111, projection='3d')
 
-for i in range(len(raw_data)):
-    xraw = raw_data[i][0]
-    yraw = raw_data[i][1]
-    zraw = raw_data[i][2]
+# for i in range(len(raw_data)):
+    # xraw = raw_data[i][0]
+    # yraw = raw_data[i][1]
+    # zraw = raw_data[i][2]
 
 #     xcalib = calibData[i, 0]
 #     ycalib = calibData[i, 1]
 #     zcalib = calibData[i, 2]
-    plot.scatter(xraw, yraw, zraw, color='r')
+    # plot.scatter(xraw, yraw, zraw, color='r')
 #     plot.scatter(xcalib, ycalib, zcalib, color='b')
 
 plot.set_title('3D Scatter Plot of Magnetometer Data')

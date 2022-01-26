@@ -5,13 +5,11 @@ edition = "2021"
 
 [dependencies]
 color-eyre = "0.6.0"
-pyo3 = { version = "0.15.1", features = ["eyre", "abi3"] }
 tracing = "0.1.29"
 tracing-subscriber = { version = "0.3.6", features = ["env-filter"] }
 tracing-error = "0.2.0"
 rand = "0.8.4"
 gtk = { version = "0.4.5", package = "gtk4" }
-cairo-rs = "0.15.1"
 plotters-cairo = "0.3.1"
 plotters = "0.3.1"
 cast = "0.3.0"

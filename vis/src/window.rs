@@ -1,14 +1,16 @@
-use std::sync::{
-    atomic::{AtomicU64, Ordering},
-    Arc,
+use std::{
+    f64::consts,
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc,
+    },
 };
 
-use cairo::Context;
 use cast::u32;
 use gtk::{
     glib::{self, clone},
     prelude::*,
-    DrawingArea, Orientation,
+    DrawingArea, Orientation, cairo::Context,
 };
 use plotters::{
     prelude::*,
@@ -24,7 +26,8 @@ fn draw(
     cr: &Context,
     width: i32,
     height: i32,
-    (azimuth, elevation): (f64, f64),
+    azimuth: f64,
+    elevation: f64,
     points: Arc<Vec<Point>>,
 ) {
     let width = u32(width).unwrap();
@@ -35,12 +38,12 @@ fn draw(
 
     area.fill(&WHITE).unwrap();
 
-    let x_axis = (-3.0..3.0).step(0.1);
-    let z_axis = (-3.0..3.0).step(0.1);
-
     let mut chart = ChartBuilder::on(&area)
-        .caption("3D Plot Test".to_string(), ("sans", 20))
-        .build_cartesian_3d(x_axis, -3.0..3.0, z_axis)
+        .caption(
+            "3D Scatter Plot of Magnetometer Data".to_string(),
+            ("sans", 20),
+        )
+        .build_cartesian_3d(-1.0..1.0, -1.0..1.0, -1.0..1.0)
         .unwrap();
 
     chart.with_projection(|mut pb| {
@@ -68,6 +71,7 @@ fn draw(
     chart
         .configure_series_labels()
         .border_style(&BLACK)
+        .background_style(&WHITE.mix(0.75))
         .draw()
         .unwrap();
 }
@@ -93,42 +97,57 @@ pub fn build_ui(application: &gtk::Application, points: Arc<Vec<Point>>) {
 
     let drawing_area = DrawingArea::builder().hexpand(true).vexpand(true).build();
 
-    let mouse_position = Arc::new((
-        AtomicU64::new(0.0f64.to_bits()),
-        AtomicU64::new(0.0f64.to_bits()),
-    ));
+    let azimuth = Arc::new(AtomicU64::new(consts::FRAC_PI_3.to_bits()));
+    let elevation = Arc::new(AtomicU64::new(consts::FRAC_PI_6.to_bits()));
 
     let text = gtk::Label::new(None);
 
-    drawing_area.set_draw_func(clone!(@strong mouse_position => move |drawing_area, context, width, height| {
-        let mouse_position = (f64::from_bits(mouse_position.0.load(Ordering::SeqCst)), f64::from_bits(mouse_position.1.load(Ordering::SeqCst)));
+    drawing_area.set_draw_func(
+        clone!(@strong azimuth, @strong elevation => move |drawing_area, context, width, height| {
+            let azimuth = f64::from_bits(azimuth.load(Ordering::SeqCst));
+            let elevation = f64::from_bits(elevation.load(Ordering::SeqCst));
 
-        draw(drawing_area, context, width, height, mouse_position, points.clone())
-    }));
+            draw(drawing_area, context, width, height, azimuth, elevation, points.clone())
+        }),
+    );
 
     drawing_area.add_controller(&{
+        let azimuth_save = Arc::new(AtomicU64::new(0.0f64.to_bits()));
+        let elevation_save = Arc::new(AtomicU64::new(0.0f64.to_bits()));
+
         let gesture = gtk::GestureDrag::new();
 
+        gesture.connect_drag_begin(clone!(@strong azimuth_save, @strong elevation_save,@strong azimuth, @strong elevation=> move |_gesture, _x, _y| {
+            azimuth_save.store(azimuth.load(Ordering::SeqCst), Ordering::SeqCst);
+            elevation_save.store(elevation.load(Ordering::SeqCst), Ordering::SeqCst);
+        }));
+
         gesture.connect_drag_update(
-            clone!(@weak drawing_area, @weak mouse_position, @weak text => move |gesture, x, y| {
+            clone!(@weak drawing_area, @strong azimuth, @strong elevation, @weak text => move |gesture, x, y| {
                 gesture.set_state(gtk::EventSequenceState::Claimed);
 
+                let azimuth_delta = -x / cast::f64(drawing_area.width()) * consts::TAU;
+                let elevation_delta = y / cast::f64(drawing_area.height()) * consts::TAU;
+
+                let azimuth_save = f64::from_bits(azimuth_save.load(Ordering::SeqCst));
+                let elevation_save = f64::from_bits(elevation_save.load(Ordering::SeqCst));
+
+                let new_azimuth = (azimuth_save + azimuth_delta) % consts::TAU;
+                let new_elevation = (elevation_save + elevation_delta)% consts::TAU;
+
+                text.set_label(&format!("azimuth: {:.1}°, elevation: {:.1}°",new_azimuth.to_degrees(), new_elevation.to_degrees()));
+
+                azimuth.store(new_azimuth.to_bits(), Ordering::SeqCst);
+                elevation.store(new_elevation.to_bits(), Ordering::SeqCst);
+
                 drawing_area.queue_draw();
-
-                let x = x / cast::f64(drawing_area.width()) * 360.0;
-                let y = y / cast::f64(drawing_area.height()) * 360.0;
-
-                mouse_position.0.store(x.to_radians().to_bits(), Ordering::SeqCst);
-                mouse_position.1.store(y.to_radians().to_bits(), Ordering::SeqCst);
-
-                text.set_label(&format!("x: {}, y: {}", x, y));
             }),
         );
 
         gesture
     });
 
-    let column = gtk::Box::new(Orientation::Vertical, 0);
+    let column = gtk::Box::new(Orientation::Vertical, 5);
     column.append(&drawing_area);
     column.append(&text);
 

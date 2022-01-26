@@ -1,12 +1,9 @@
-use std::{sync::Arc, thread};
+use std::sync::Arc;
 
 use color_eyre::{eyre::Context, Result};
 use point::PointCloud;
-use pyo3::Python;
-use python::run_python;
 
 pub mod point;
-mod python;
 mod window;
 
 fn main() -> Result<()> {
@@ -16,14 +13,7 @@ fn main() -> Result<()> {
     let points: Vec<_> = PointCloud::iter().take(500).collect();
     let points = Arc::new(points);
 
-    thread::spawn({
-        let points = points.clone();
-        || window::main(points)
-    });
-
-    pyo3::prepare_freethreaded_python();
-
-    Python::with_gil(|python| run_python(python, points)).wrap_err("failed to execute python")?;
+    window::main(points);
 
     Ok(())
 }
