@@ -1,10 +1,11 @@
 use std::sync::Arc;
 
-use color_eyre::{eyre::Context, Result};
+use color_eyre::Result;
 use point::PointCloud;
 
+pub mod plot;
 pub mod point;
-mod window;
+pub mod window;
 
 fn main() -> Result<()> {
     color_eyre::install()?;
