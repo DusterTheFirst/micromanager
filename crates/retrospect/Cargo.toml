@@ -9,7 +9,8 @@ tracing = "0.1.29"
 tracing-subscriber = { version = "0.3.6", features = ["env-filter"] }
 tracing-error = "0.2.0"
 rand = "0.8.4"
-gtk = { version = "0.4.5", package = "gtk4" }
-plotters-cairo = "0.3.1"
+egui = "0.16.1"
+eframe = "0.16.0"
+plotters-eframe = { path = "../plotters-eframe" }
 plotters = "0.3.1"
 cast = "0.3.0"

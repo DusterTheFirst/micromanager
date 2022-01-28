@@ -1,10 +1,11 @@
-use std::sync::Arc;
-
 use color_eyre::Result;
+use eframe::NativeOptions;
 use point::PointCloud;
+use window::Window;
 
 pub mod plot;
 pub mod point;
+// pub mod gtk_window;
 pub mod window;
 
 fn main() -> Result<()> {
@@ -12,11 +13,8 @@ fn main() -> Result<()> {
     install_tracing();
 
     let points: Vec<_> = PointCloud::iter().take(500).collect();
-    let points = Arc::new(points);
 
-    window::main(points);
-
-    Ok(())
+    eframe::run_native(Box::new(Window::new(points)), NativeOptions::default());
 }
 
 fn install_tracing() {

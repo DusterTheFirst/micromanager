@@ -1,0 +1,8 @@
+[package]
+name = "plotters-eframe"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+plotters-backend = "^0.3.2"
+eframe = "^0.16.0"

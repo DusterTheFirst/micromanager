@@ -42,7 +42,7 @@ pub fn build_ui(application: &gtk::Application, points: Arc<Vec<Point>>) {
         yaw: consts::FRAC_PI_3,
     }));
 
-    let text = gtk::Label::new(None);
+    let text = gtk::Label::builder().build();
 
     drawing_area.set_draw_func({
         let projection = projection.clone();
@@ -122,9 +122,15 @@ pub fn build_ui(application: &gtk::Application, points: Arc<Vec<Point>>) {
         gesture
     });
 
-    let column = gtk::Box::new(Orientation::Vertical, 5);
+    let action_bar = gtk::ActionBar::builder().build();
+    action_bar.pack_start(&{ gtk::Button::builder().icon_name("document-save-as").build() });
+    action_bar.pack_end(&text);
+
+    let column = gtk::Box::builder()
+        .orientation(Orientation::Vertical)
+        .build();
     column.append(&drawing_area);
-    column.append(&text);
+    column.append(&action_bar);
 
     window.set_child(Some(&column));
     window.set_default_size(500, 500);

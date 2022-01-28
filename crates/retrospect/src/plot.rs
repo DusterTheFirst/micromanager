@@ -5,7 +5,6 @@ use plotters::{
     prelude::*,
     style::{Color, BLACK, WHITE},
 };
-use plotters_cairo::CairoBackend;
 
 use crate::point::Point;
 
@@ -28,8 +27,8 @@ impl Add for PlotProjection {
     }
 }
 
-pub fn draw_plot(
-    drawing_area: DrawingArea<CairoBackend, Shift>,
+pub fn draw_plot<DB: DrawingBackend>(
+    drawing_area: DrawingArea<DB, Shift>,
     projection: &PlotProjection,
     points: &[Point],
 ) {
@@ -40,7 +39,7 @@ pub fn draw_plot(
             "3D Scatter Plot of Magnetometer Data".to_string(),
             ("sans", 20),
         )
-        .build_cartesian_3d(-1.0..1.0, -1.0..1.0, -1.0..1.0)
+        .build_cartesian_3d(-1.0f64..1.0, -1.0..1.0, -1.0..1.0)
         .unwrap();
 
     chart.with_projection(|mut pb| {
@@ -67,9 +66,9 @@ pub fn draw_plot(
     chart
         .draw_series(PointSeries::of_element(
             points.iter().copied(),
-            2u32,
+            0.5,
             RED.filled(),
-            &|(x, y, z), size, style| Circle::new((x, y, z), size, style),
+            &|(x, y, z), size, style| Circle::new((x, y, z), size.percent(), style),
         ))
         .unwrap()
         .label("Test")
@@ -81,4 +80,8 @@ pub fn draw_plot(
         .background_style(&WHITE.mix(0.75))
         .draw()
         .unwrap();
+
+    drawing_area
+        .present()
+        .expect("unable to present drawing area");
 }
