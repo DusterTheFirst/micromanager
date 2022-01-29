@@ -2,6 +2,7 @@ use std::{convert::Infallible, mem};
 
 use eframe::{
     egui::{
+        color::{linear_f32_from_gamma_u8, Rgba},
         emath::{Pos2, RectTransform},
         epaint::Mesh,
         Align, Align2, Color32, Painter, Rect, Shape, Stroke, TextStyle, Vec2,
@@ -12,8 +13,8 @@ use plotters_backend::{
     BackendColor, BackendCoord, BackendStyle, BackendTextStyle, DrawingBackend, DrawingErrorKind,
 };
 
-pub struct EguiBackend<'f> {
-    frame: &'f Frame,
+pub struct EguiBackend {
+    frame: Frame,
     painter: Painter,
     size: Vec2,
 
@@ -22,9 +23,9 @@ pub struct EguiBackend<'f> {
     shapes: Vec<Shape>,
 }
 
-impl<'f> EguiBackend<'f> {
+impl EguiBackend {
     // TODO: note about widget
-    pub fn new(frame: &'f Frame, painter: Painter, rect: Rect) -> Self {
+    pub fn new(frame: Frame, painter: Painter, rect: Rect) -> Self {
         let to_screen_coords =
             RectTransform::from_to(Rect::from_min_size(Pos2::ZERO, rect.size()), rect);
 
@@ -48,14 +49,19 @@ impl<'f> EguiBackend<'f> {
 fn color32(color: BackendColor) -> Color32 {
     let (r, g, b) = color.rgb;
 
-    Color32::from_rgba_premultiplied(r, g, b, (color.alpha * u8::MAX as f64).round() as u8)
+    let r = linear_f32_from_gamma_u8(r);
+    let g = linear_f32_from_gamma_u8(g);
+    let b = linear_f32_from_gamma_u8(b);
+    let a = color.alpha as f32;
+
+    Rgba::from_rgba_premultiplied(r * a, g * a, b * a, a).into()
 }
 
 fn stroke<S: BackendStyle>(style: &S) -> Stroke {
     Stroke::new(style.stroke_width() as f32, color32(style.color()))
 }
 
-impl<'f> DrawingBackend for EguiBackend<'f> {
+impl DrawingBackend for EguiBackend {
     type ErrorType = Infallible;
 
     fn get_size(&self) -> (u32, u32) {

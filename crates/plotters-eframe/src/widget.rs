@@ -1,34 +1,75 @@
 use eframe::{
-    egui::{Response, Sense, Ui, Vec2, Widget},
+    egui::{InnerResponse, NumExt, Sense, Ui, Vec2},
     epi::Frame,
 };
 
 use crate::backend::EguiBackend;
 
-pub struct PlottersWidget<'f> {
-    frame: &'f Frame,
-    plot: Box<dyn FnOnce(EguiBackend)>,
-    size: Vec2,
+pub struct PlottersWidget {
+    frame: Frame,
+
+    min_size: Vec2,
+
+    width: Option<f32>,
+    height: Option<f32>,
+
+    sense: Sense,
 }
 
-impl<'f> PlottersWidget<'f> {
-    pub fn new(frame: &'f Frame, plot: impl FnOnce(EguiBackend) + 'static, size: Vec2) -> Self {
+impl PlottersWidget {
+    pub fn new(frame: &Frame) -> Self {
         Self {
-            frame,
-            plot: Box::new(plot), // TODO: unbox?
-            size,
+            frame: frame.clone(),
+            min_size: Vec2::splat(64.0),
+            height: None,
+            width: None,
+            sense: Sense::focusable_noninteractive(),
         }
     }
-}
 
-impl<'f> Widget for PlottersWidget<'f> {
-    fn ui(self, ui: &mut Ui) -> Response {
-        let (response, painter) = ui.allocate_painter(self.size, Sense::focusable_noninteractive());
+    pub fn width(mut self, width: f32) -> Self {
+        self.min_size.x = width;
+        self.width = Some(width);
+        self
+    }
+
+    pub fn height(mut self, height: f32) -> Self {
+        self.min_size.y = height;
+        self.height = Some(height);
+        self
+    }
+
+    pub fn min_size(mut self, min_size: Vec2) -> Self {
+        self.min_size = min_size;
+        self
+    }
+
+    pub fn sense(mut self, sense: Sense) -> Self {
+        self.sense = sense;
+        self
+    }
+
+    pub fn show<R>(self, ui: &mut Ui, plot_fn: impl FnOnce(EguiBackend) -> R) -> InnerResponse<R> {
+        let size = {
+            let width = self
+                .width
+                .unwrap_or_else(|| ui.available_size_before_wrap().x)
+                .at_least(self.min_size.x);
+
+            let height = self
+                .height
+                .unwrap_or_else(|| ui.available_size_before_wrap().y)
+                .at_least(self.min_size.y);
+
+            Vec2::new(width, height)
+        };
+
+        let (response, painter) = ui.allocate_painter(size, self.sense);
 
         let backend = EguiBackend::new(self.frame, painter, response.rect);
 
-        (self.plot)(backend);
+        let inner = (plot_fn)(backend);
 
-        response
+        InnerResponse::new(inner, response)
     }
 }
