@@ -5,7 +5,6 @@ use window::Window;
 
 pub mod plot;
 pub mod point;
-// pub mod gtk_window;
 pub mod window;
 
 fn main() -> Result<()> {
