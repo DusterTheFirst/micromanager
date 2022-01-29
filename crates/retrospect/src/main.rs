@@ -6,6 +6,7 @@ use window::Window;
 pub mod plot;
 pub mod point;
 pub mod window;
+pub mod export;
 
 fn main() -> Result<()> {
     color_eyre::install()?;

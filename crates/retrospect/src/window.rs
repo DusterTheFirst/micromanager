@@ -1,4 +1,4 @@
-use std::{f64::consts, rc::Rc};
+use std::{f64::consts, sync::Arc, thread};
 
 use eframe::epi::{self, App, Frame};
 use egui::{
@@ -9,10 +9,10 @@ use plotters::prelude::IntoDrawingArea;
 use plotters_bitmap::BitMapBackend;
 use plotters_eframe::PlottersWidget;
 
-use crate::{plot::PlotProjection, point::Point};
+use crate::{export::export, plot::PlotProjection, point::Point};
 
 pub struct Window {
-    points: Rc<Vec<Point>>,
+    points: Arc<Vec<Point>>,
 
     projection: PlotProjection,
 
@@ -23,7 +23,7 @@ pub struct Window {
 impl Window {
     pub fn new(points: Vec<Point>) -> Self {
         Self {
-            points: Rc::from(points),
+            points: Arc::from(points),
 
             projection: PlotProjection {
                 pitch: consts::FRAC_PI_6,
@@ -37,7 +37,7 @@ impl Window {
     }
 
     pub fn add_point(&mut self, point: Point) {
-        Rc::make_mut(&mut self.points).push(point);
+        Arc::make_mut(&mut self.points).push(point);
     }
 }
 
@@ -46,7 +46,15 @@ impl App for Window {
         ctx.set_debug_on_hover(true);
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.heading(format!("Rendering {} points", self.points.len()));
+            // TODO: size selection
+            if ui.button("💾").clicked() {
+                let points = self.points.clone();
+                let projection = self.projection;
+
+                // TODO: error dialog
+                thread::spawn(move || export(projection, &points, (1080, 1080)).unwrap());
+            }
+
             ui.label(format!(
                 "Last frame: {} ms",
                 frame.info().cpu_usage.unwrap_or(0.0) * 1000.0
