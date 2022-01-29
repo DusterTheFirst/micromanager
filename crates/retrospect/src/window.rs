@@ -2,8 +2,8 @@ use std::{f64::consts, rc::Rc};
 
 use eframe::epi::{self, App, Frame};
 use egui::{
-    plot::{Plot, Points, Value, Values},
-    Color32, CtxRef,
+    plot::{Legend, Plot, Points, Value, Values},
+    Color32, CtxRef, InnerResponse, Sense, Ui,
 };
 use plotters::prelude::IntoDrawingArea;
 use plotters_bitmap::BitMapBackend;
@@ -14,6 +14,8 @@ use crate::{plot::PlotProjection, point::Point};
 pub struct Window {
     points: Rc<Vec<Point>>,
 
+    projection: PlotProjection,
+
     bitmap_backend: bool,
     native_plotters: bool,
 }
@@ -22,6 +24,12 @@ impl Window {
     pub fn new(points: Vec<Point>) -> Self {
         Self {
             points: Rc::from(points),
+
+            projection: PlotProjection {
+                pitch: consts::FRAC_PI_6,
+                scale: 0.75,
+                yaw: consts::FRAC_PI_3,
+            },
 
             bitmap_backend: false,
             native_plotters: true,
@@ -52,76 +60,60 @@ impl App for Window {
 
             if self.native_plotters {
                 ui.columns(3, |ui| {
-                    Plot::new("xy")
-                        .view_aspect(1.0)
-                        .data_aspect(1.0)
-                        .width(ui[0].available_width().min(300.0))
-                        .show(&mut ui[0], {
-                            let points = self.points.clone();
+                    let plot = |ui: &mut Ui, map: fn((f64, f64, f64)) -> Value| {
+                        Plot::new(&map)
+                            .view_aspect(1.0)
+                            .data_aspect(1.0)
+                            .include_x(2.0)
+                            .include_x(-2.0)
+                            .include_y(2.0)
+                            .include_y(-2.0)
+                            .legend(Legend::default())
+                            .width(ui.available_width().min(300.0))
+                            .show(ui, {
+                                let points = self.points.clone();
 
-                            move |ui| {
-                                ui.points(Points::new(Values::from_values_iter(
-                                    points.iter().copied().map(|(x, y, _)| Value::new(x, y)),
-                                )))
-                            }
-                        });
+                                move |ui| {
+                                    ui.points(
+                                        Points::new(Values::from_values_iter(
+                                            points.iter().copied().map(map),
+                                        ))
+                                        .name("Magnetometer Calibration data"),
+                                    )
+                                }
+                            });
+                    };
 
-                    Plot::new("yz")
-                        .view_aspect(1.0)
-                        .data_aspect(1.0)
-                        .width(ui[1].available_width().min(300.0))
-                        .show(&mut ui[1], {
-                            let points = self.points.clone();
-
-                            move |ui| {
-                                ui.points(Points::new(Values::from_values_iter(
-                                    points.iter().copied().map(|(_, y, z)| Value::new(y, z)),
-                                )))
-                            }
-                        });
-
-                    Plot::new("xz")
-                        .view_aspect(1.0)
-                        .data_aspect(1.0)
-                        .width(ui[2].available_width().min(300.0))
-                        .show(&mut ui[2], {
-                            let points = self.points.clone();
-
-                            move |ui| {
-                                ui.points(Points::new(Values::from_values_iter(
-                                    points.iter().copied().map(|(x, _, z)| Value::new(x, z)),
-                                )))
-                            }
-                        });
+                    plot(&mut ui[0], |(x, y, _z)| Value::new(x, y));
+                    plot(&mut ui[1], |(_x, y, z)| Value::new(y, z));
+                    plot(&mut ui[2], |(x, _y, z)| Value::new(x, z));
                 });
             }
 
             ui.checkbox(&mut self.bitmap_backend, "Bitmap Backend?");
 
-            ui.columns(2, |ui| {
+            ui.columns(self.bitmap_backend.then(|| 2).unwrap_or(1), |ui| {
                 egui::trace!(ui[0], "PlottersWidget");
 
-                ui[0].add(PlottersWidget::new(
-                    frame,
-                    {
+                let InnerResponse {
+                    response: plotter, ..
+                } = PlottersWidget::new(frame)
+                    .sense(Sense::click_and_drag())
+                    .show(&mut ui[0], {
                         let points = self.points.clone();
+                        let projection = self.projection;
 
                         move |backend| {
                             let drawing_area = backend.into_drawing_area();
 
-                            crate::plot::draw_plot(
-                                drawing_area,
-                                &PlotProjection {
-                                    pitch: consts::FRAC_PI_6,
-                                    scale: 0.75,
-                                    yaw: consts::FRAC_PI_3,
-                                },
-                                points.as_ref(),
-                            )
+                            crate::plot::draw_plot(drawing_area, projection, points.as_ref())
                         }
-                    },
-                    ui[0].available_size(),
-                ));
+                    });
+
+                let drag = plotter.drag_delta();
+
+                self.projection.yaw -= (drag.x / plotter.rect.width()) as f64;
+                self.projection.pitch += (drag.y / plotter.rect.height()) as f64;
 
                 // Bitmap
                 if self.bitmap_backend {
@@ -137,15 +129,7 @@ impl App for Window {
 
                     let drawing_area = backend.into_drawing_area();
 
-                    crate::plot::draw_plot(
-                        drawing_area,
-                        &PlotProjection {
-                            pitch: consts::FRAC_PI_6,
-                            scale: 0.75,
-                            yaw: consts::FRAC_PI_3,
-                        },
-                        self.points.as_ref(),
-                    );
+                    crate::plot::draw_plot(drawing_area, self.projection, self.points.as_ref());
 
                     let pixels = buffer
                         .chunks_exact(3)

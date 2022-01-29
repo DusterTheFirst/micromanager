@@ -29,7 +29,7 @@ impl Add for PlotProjection {
 
 pub fn draw_plot<DB: DrawingBackend>(
     drawing_area: DrawingArea<DB, Shift>,
-    projection: &PlotProjection,
+    projection: PlotProjection,
     points: &[Point],
 ) {
     drawing_area.fill(&WHITE).unwrap();
