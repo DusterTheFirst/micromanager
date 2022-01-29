@@ -4,7 +4,7 @@ use eframe::{
     egui::{
         emath::{Pos2, RectTransform},
         epaint::Mesh,
-        Align, Align2, Color32, Painter, Rect, Shape, Stroke, TextStyle, TextureId, Vec2,
+        Align, Align2, Color32, Painter, Rect, Shape, Stroke, TextStyle, Vec2,
     },
     epi::{Frame, Image},
 };
@@ -20,11 +20,6 @@ pub struct EguiBackend<'f> {
     to_screen_coords: RectTransform,
 
     shapes: Vec<Shape>,
-
-    // TODO: note about de-allocation of textures
-    // TODO: maybe hashing/caching to reuse textures that do not change
-    allocated_textures: Vec<TextureId>,
-    gc_textures: Vec<TextureId>,
 }
 
 impl<'f> EguiBackend<'f> {
@@ -41,21 +36,19 @@ impl<'f> EguiBackend<'f> {
             to_screen_coords,
 
             shapes: Vec::new(),
-            allocated_textures: Vec::new(),
-
-            gc_textures: Vec::new(),
         }
     }
 
     fn pos2(&self, (x, y): BackendCoord) -> Pos2 {
-        self.to_screen_coords * Pos2::new(x as f32, y as f32)
+        self.painter
+            .round_pos_to_pixels(self.to_screen_coords * Pos2::new(x as f32, y as f32))
     }
 }
 
 fn color32(color: BackendColor) -> Color32 {
     let (r, g, b) = color.rgb;
 
-    Color32::from_rgb(r, g, b).linear_multiply(color.alpha as f32)
+    Color32::from_rgba_premultiplied(r, g, b, (color.alpha * u8::MAX as f64).round() as u8)
 }
 
 fn stroke<S: BackendStyle>(style: &S) -> Stroke {
@@ -79,14 +72,6 @@ impl<'f> DrawingBackend for EguiBackend<'f> {
         let shapes = mem::take(&mut self.shapes);
 
         self.painter.extend(shapes);
-
-        // Garbage collect textures from last presentation
-        for &texture in self.gc_textures.iter() {
-            self.frame.free_texture(texture);
-        }
-
-        // Mark all textures for garbage collection next presentation
-        self.gc_textures = mem::take(&mut self.allocated_textures);
 
         Ok(())
     }
@@ -176,9 +161,10 @@ impl<'f> DrawingBackend for EguiBackend<'f> {
         vert: I,
         style: &S,
     ) -> Result<(), DrawingErrorKind<Self::ErrorType>> {
-        self.shapes.push(Shape::closed_line(
+        self.shapes.push(Shape::convex_polygon(
             vert.into_iter().map(|coord| self.pos2(coord)).collect(),
-            stroke(style),
+            color32(style.color()),
+            Stroke::none(),
         ));
 
         Ok(())
@@ -272,7 +258,8 @@ impl<'f> DrawingBackend for EguiBackend<'f> {
 
         self.shapes.push(Shape::mesh(mesh));
 
-        self.allocated_textures.push(texture);
+        // TODO: maybe hashing/caching to reuse textures that do not change
+        self.frame.free_texture(texture);
 
         Ok(())
     }

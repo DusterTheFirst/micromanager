@@ -1,7 +1,10 @@
 use std::{f64::consts, rc::Rc};
 
 use eframe::epi::{self, App, Frame};
-use egui::{Color32, CtxRef};
+use egui::{
+    plot::{Plot, Points, Value, Values},
+    Color32, CtxRef,
+};
 use plotters::prelude::IntoDrawingArea;
 use plotters_bitmap::BitMapBackend;
 use plotters_eframe::PlottersWidget;
@@ -38,6 +41,51 @@ impl App for Window {
                 "Last frame: {} ms",
                 frame.info().cpu_usage.unwrap_or(0.0) * 1000.0
             ));
+            ui.label(format!(
+                "Pixels per point: {}",
+                frame.info().native_pixels_per_point.unwrap_or(f32::NAN)
+            ));
+
+            ui.columns(3, |ui| {
+                Plot::new("xy")
+                    .view_aspect(1.0)
+                    .data_aspect(1.0)
+                    .show(&mut ui[0], {
+                        let points = self.points.clone();
+
+                        move |ui| {
+                            ui.points(Points::new(Values::from_values_iter(
+                                points.iter().copied().map(|(x, y, _)| Value::new(x, y)),
+                            )))
+                        }
+                    });
+
+                Plot::new("yz")
+                    .view_aspect(1.0)
+                    .data_aspect(1.0)
+                    .show(&mut ui[1], {
+                        let points = self.points.clone();
+
+                        move |ui| {
+                            ui.points(Points::new(Values::from_values_iter(
+                                points.iter().copied().map(|(_, y, z)| Value::new(y, z)),
+                            )))
+                        }
+                    });
+
+                Plot::new("xz")
+                    .view_aspect(1.0)
+                    .data_aspect(1.0)
+                    .show(&mut ui[2], {
+                        let points = self.points.clone();
+
+                        move |ui| {
+                            ui.points(Points::new(Values::from_values_iter(
+                                points.iter().copied().map(|(x, _, z)| Value::new(x, z)),
+                            )))
+                        }
+                    });
+            });
 
             ui.checkbox(&mut self.native_backend, "Native Backend?");
 

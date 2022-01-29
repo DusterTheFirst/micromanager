@@ -1,5 +1,2 @@
 [workspace]
 members = ["crates/*"]
-
-[patch.crates-io]
-plotters-cairo = { path = "../plotters-cairo" }
