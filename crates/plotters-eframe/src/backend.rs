@@ -202,7 +202,7 @@ impl<'f> DrawingBackend for EguiBackend<'f> {
             self.pos2(pos),
             anchor,
             text,
-            TextStyle::Body,
+            TextStyle::Monospace,
             color32(style.color()),
         ));
 

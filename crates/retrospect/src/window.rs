@@ -14,7 +14,8 @@ use crate::{plot::PlotProjection, point::Point};
 pub struct Window {
     points: Rc<Vec<Point>>,
 
-    native_backend: bool,
+    bitmap_backend: bool,
+    native_plotters: bool,
 }
 
 impl Window {
@@ -22,7 +23,8 @@ impl Window {
         Self {
             points: Rc::from(points),
 
-            native_backend: true,
+            bitmap_backend: false,
+            native_plotters: true,
         }
     }
 
@@ -46,53 +48,60 @@ impl App for Window {
                 frame.info().native_pixels_per_point.unwrap_or(f32::NAN)
             ));
 
-            ui.columns(3, |ui| {
-                Plot::new("xy")
-                    .view_aspect(1.0)
-                    .data_aspect(1.0)
-                    .show(&mut ui[0], {
-                        let points = self.points.clone();
+            ui.checkbox(&mut self.native_plotters, "Native Plotters?");
 
-                        move |ui| {
-                            ui.points(Points::new(Values::from_values_iter(
-                                points.iter().copied().map(|(x, y, _)| Value::new(x, y)),
-                            )))
-                        }
-                    });
+            if self.native_plotters {
+                ui.columns(3, |ui| {
+                    Plot::new("xy")
+                        .view_aspect(1.0)
+                        .data_aspect(1.0)
+                        .width(ui[0].available_width().min(300.0))
+                        .show(&mut ui[0], {
+                            let points = self.points.clone();
 
-                Plot::new("yz")
-                    .view_aspect(1.0)
-                    .data_aspect(1.0)
-                    .show(&mut ui[1], {
-                        let points = self.points.clone();
+                            move |ui| {
+                                ui.points(Points::new(Values::from_values_iter(
+                                    points.iter().copied().map(|(x, y, _)| Value::new(x, y)),
+                                )))
+                            }
+                        });
 
-                        move |ui| {
-                            ui.points(Points::new(Values::from_values_iter(
-                                points.iter().copied().map(|(_, y, z)| Value::new(y, z)),
-                            )))
-                        }
-                    });
+                    Plot::new("yz")
+                        .view_aspect(1.0)
+                        .data_aspect(1.0)
+                        .width(ui[1].available_width().min(300.0))
+                        .show(&mut ui[1], {
+                            let points = self.points.clone();
 
-                Plot::new("xz")
-                    .view_aspect(1.0)
-                    .data_aspect(1.0)
-                    .show(&mut ui[2], {
-                        let points = self.points.clone();
+                            move |ui| {
+                                ui.points(Points::new(Values::from_values_iter(
+                                    points.iter().copied().map(|(_, y, z)| Value::new(y, z)),
+                                )))
+                            }
+                        });
 
-                        move |ui| {
-                            ui.points(Points::new(Values::from_values_iter(
-                                points.iter().copied().map(|(x, _, z)| Value::new(x, z)),
-                            )))
-                        }
-                    });
-            });
+                    Plot::new("xz")
+                        .view_aspect(1.0)
+                        .data_aspect(1.0)
+                        .width(ui[2].available_width().min(300.0))
+                        .show(&mut ui[2], {
+                            let points = self.points.clone();
 
-            ui.checkbox(&mut self.native_backend, "Native Backend?");
+                            move |ui| {
+                                ui.points(Points::new(Values::from_values_iter(
+                                    points.iter().copied().map(|(x, _, z)| Value::new(x, z)),
+                                )))
+                            }
+                        });
+                });
+            }
 
-            if self.native_backend {
-                egui::trace!(ui, "PlottersWidget");
+            ui.checkbox(&mut self.bitmap_backend, "Bitmap Backend?");
 
-                ui.add(PlottersWidget::new(
+            ui.columns(2, |ui| {
+                egui::trace!(ui[0], "PlottersWidget");
+
+                ui[0].add(PlottersWidget::new(
                     frame,
                     {
                         let points = self.points.clone();
@@ -111,47 +120,55 @@ impl App for Window {
                             )
                         }
                     },
-                    ui.available_size(),
+                    ui[0].available_size(),
                 ));
-            } else {
-                egui::trace!(ui, "BitmapBackend");
 
-                let available_size = ui.available_size().round();
+                // Bitmap
+                if self.bitmap_backend {
+                    egui::trace!(ui[1], "BitmapBackend");
 
-                let x = available_size.x as usize;
-                let y = available_size.y as usize;
+                    let available_size = ui[1].available_size().round();
 
-                let mut buffer = vec![0; x * y * 3];
-                let backend = BitMapBackend::with_buffer(&mut buffer, (x as u32, y as u32));
+                    let x = available_size.x as usize;
+                    let y = available_size.y as usize;
 
-                let drawing_area = backend.into_drawing_area();
+                    let mut buffer = vec![0; x * y * 3];
+                    let backend = BitMapBackend::with_buffer(&mut buffer, (x as u32, y as u32));
 
-                crate::plot::draw_plot(
-                    drawing_area,
-                    &PlotProjection {
-                        pitch: consts::FRAC_PI_6,
-                        scale: 0.75,
-                        yaw: consts::FRAC_PI_3,
-                    },
-                    self.points.as_ref(),
-                );
+                    let drawing_area = backend.into_drawing_area();
 
-                let pixels = buffer
-                    .chunks_exact(3)
-                    .map(|pixels| {
-                        Color32::from_rgba_unmultiplied(pixels[0], pixels[1], pixels[2], u8::MAX)
-                    })
-                    .collect();
+                    crate::plot::draw_plot(
+                        drawing_area,
+                        &PlotProjection {
+                            pitch: consts::FRAC_PI_6,
+                            scale: 0.75,
+                            yaw: consts::FRAC_PI_3,
+                        },
+                        self.points.as_ref(),
+                    );
 
-                let texture_id = frame.alloc_texture(epi::Image {
-                    size: [x, y],
-                    pixels,
-                });
+                    let pixels = buffer
+                        .chunks_exact(3)
+                        .map(|pixels| {
+                            Color32::from_rgba_unmultiplied(
+                                pixels[0],
+                                pixels[1],
+                                pixels[2],
+                                u8::MAX,
+                            )
+                        })
+                        .collect();
 
-                ui.image(texture_id, available_size);
+                    let texture_id = frame.alloc_texture(epi::Image {
+                        size: [x, y],
+                        pixels,
+                    });
 
-                frame.free_texture(texture_id);
-            }
+                    ui[1].image(texture_id, available_size);
+
+                    frame.free_texture(texture_id);
+                }
+            });
         });
     }
 
