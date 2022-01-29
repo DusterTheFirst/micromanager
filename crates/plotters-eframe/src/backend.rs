@@ -36,7 +36,7 @@ impl<'f> EguiBackend<'f> {
         Self {
             frame,
             painter,
-            size: dbg!(dbg!(rect).size()),
+            size: rect.size(),
 
             to_screen_coords,
 

@@ -957,6 +957,7 @@ dependencies = [
  "eframe",
  "egui",
  "plotters",
+ "plotters-bitmap",
  "plotters-eframe",
  "rand",
  "tracing",
