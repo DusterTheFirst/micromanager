@@ -1359,7 +1359,7 @@ dependencies = [
 
 [[package]]
 name = "micromanager-calibrate"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "color-eyre",
  "eframe",
@@ -1377,7 +1377,7 @@ dependencies = [
 
 [[package]]
 name = "micromanager-tele"
-version = "0.1.0"
+version = "0.0.0"
 
 [[package]]
 name = "minimal-lexical"
@@ -1798,7 +1798,7 @@ dependencies = [
 
 [[package]]
 name = "plotters-eframe"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "eframe",
  "plotters-backend",
