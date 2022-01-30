@@ -13,7 +13,11 @@ rand = "0.8.4"
 egui = "0.16.1"
 eframe = "0.16.0"
 plotters-eframe = { path = "../../libs/plotters-eframe" }
-plotters-bitmap = { version = "0.3.1", features = ["image_encoder"] }
-plotters-svg = "0.3.1"
-plotters = "0.3.1"
+plotters = { version = "0.3.1", default-features = false, features = [
+    "svg_backend",
+    "bitmap_backend",
+    "bitmap_encoder",
+    "all_series",
+    "all_elements",
+] }
 rfd = "0.7.0"

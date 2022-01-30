@@ -4,7 +4,7 @@ use std::{
     path::PathBuf,
 };
 
-use plotters::prelude::IntoDrawingArea;
+use plotters::prelude::{BitMapBackend, IntoDrawingArea, SVGBackend};
 use rfd::FileDialog;
 
 use crate::{
@@ -63,13 +63,12 @@ pub fn export(
 
     match extension {
         "svg" => {
-            let drawing_area = plotters_svg::SVGBackend::new(&selected, size).into_drawing_area();
+            let drawing_area = SVGBackend::new(&selected, size).into_drawing_area();
 
             plot::draw_plot(drawing_area, projection, points);
         }
         "png" | "jpg" | "bmp" => {
-            let drawing_area =
-                plotters_bitmap::BitMapBackend::new(&selected, size).into_drawing_area();
+            let drawing_area = BitMapBackend::new(&selected, size).into_drawing_area();
 
             plot::draw_plot(drawing_area, projection, points);
         }

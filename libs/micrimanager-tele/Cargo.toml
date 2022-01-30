@@ -1,0 +1,8 @@
+[package]
+name = "micromanager-tele"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+serde = "1.0.136"

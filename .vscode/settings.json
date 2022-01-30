@@ -3,6 +3,7 @@
         "eframe",
         "egui",
         "emath",
-        "epaint"
+        "epaint",
+        "telecommand"
     ]
 }

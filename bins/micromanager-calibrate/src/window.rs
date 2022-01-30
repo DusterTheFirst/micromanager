@@ -5,8 +5,7 @@ use egui::{
     plot::{Legend, Plot, Points, Value, Values},
     Color32, CtxRef, InnerResponse, Sense, Ui,
 };
-use plotters::prelude::IntoDrawingArea;
-use plotters_bitmap::BitMapBackend;
+use plotters::prelude::{BitMapBackend, IntoDrawingArea};
 use plotters_eframe::PlottersWidget;
 
 use crate::{export::export, plot::PlotProjection, point::Point};
