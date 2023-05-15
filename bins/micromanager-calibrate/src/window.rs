@@ -42,7 +42,7 @@ impl Window {
 
 impl App for Window {
     fn update(&mut self, ctx: &CtxRef, frame: &Frame) {
-        ctx.set_debug_on_hover(true);
+        // ctx.set_debug_on_hover(true);
 
         egui::CentralPanel::default().show(ctx, |ui| {
             // TODO: size selection
